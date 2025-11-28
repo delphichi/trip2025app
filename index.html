@@ -1,73 +1,40 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>家族快樂之旅</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#7CFC00">
-</head>
-<body>
+<main class="trip-schedule" id="trip-schedule-container">
+    <p>正在載入最新的家族行程表...</p>
+</main>
 
-    <header class="app-header">
-        <h1>2025 年 VIÑA / CHILLAN 快樂之旅</h1>
-        <p class="subtitle">8 天 7 夜 家族專屬行程</p>
-    </header>
+<script>
+    // ** 請將此替換為您在 Apps Script 步驟中獲得的 Web app URL **
+    const API_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE'; 
 
-    <main class="trip-schedule">
+    async function fetchTripData() {
+        const container = document.getElementById('trip-schedule-container');
+        try {
+            // 抓取 Apps Script 提供的 JSON 資料
+            const response = await fetch(API_URL);
+            const data = await response.json();
 
-        <section class="day-card">
-            <h2 class="day-title">📆 第 1 天：2025/11/30</h2>
-            <div class="activity-list">
-                <div class="activity">
-                    <span class="time">上午</span>
-                    <p><strong>景點名稱 VIÑA</strong> - 介紹：花鐘。</p>
-                </div>
-                <div class="activity meal">
-                    <span class="time">中餐</span>
-                    <p>牛排</p>
-                </div>
-                <div class="activity">
-                    <span class="time">下午</span>
-                    <p><strong>景點名稱 VAL PARAISO</strong> - 介紹：彩色樓。</p>
-                </div>
-                <div class="activity meal">
-                    <span class="time">晚餐</span>
-                    <p>烤魚</p>
-                </div>
-                <div class="activity accommodation">
-                    <span class="time">住宿</span>
-                    <p>NH HOTEL</p>
-                </div>
-            </div>
-        </section>
+            container.innerHTML = ''; // 清空載入中提示
 
-        <section class="day-card">
-            <h2 class="day-title">📆 第 2 天：2025/12/1</h2>
-            <div class="activity-list">
-                <div class="activity">
-                    <span class="time">全天</span>
-                    <p><strong>SANTIAGO C</strong> - 介紹：FERNANDO ALMUERZO。</p>
-                </div>
-                </div>
-        </section>
+            // 這裡需要複雜的程式碼來遍歷 JSON 資料 (data) 並生成 HTML 結構
 
-        <p class="footer-note">🥳 期待我們的快樂旅程！</p>
-    </main>
+            // 為了簡化，我們先只顯示成功訊息和部分數據
+            let htmlContent = '<p class="footer-note">🥳 資料載入成功！</p>';
+            
+            // 範例：顯示第一天的行程標題
+            if(data.length > 0) {
+                 htmlContent += `<section class="day-card"><h2 class="day-title">📆 第 1 天：${data[0].Date}</h2>`;
+                 htmlContent += `<p>上午行程：${data[0].Activity} - ${data[0].Description}</p></section>`;
+            }
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                // 註冊一個名為 'sw.js' 的 Service Worker 檔案
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    // console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, function(err) {
-                    // console.log('ServiceWorker registration failed: ', err);
-                });
-            });
+            container.innerHTML = htmlContent;
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            container.innerHTML = '<p style="color: red;">⚠️ 無法從 Google 試算表載入資料。請檢查網路或 API 連結。</p>';
         }
-    </script>
-    
-    </body>
-</html>
+    }
+
+    // 在網頁載入完成後執行抓取資料
+    window.addEventListener('load', fetchTripData);
+
+</script>
