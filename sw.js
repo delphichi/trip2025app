@@ -5,7 +5,7 @@
 // 3. 擷取階段 (Fetch)
 self.addEventListener('fetch', event => {
     // 檢查是否為我們的 Apps Script API 請求
-    if (event.request.url.startsWith('YOUR_APPS_SCRIPT_WEB_APP_URL_HERE')) {
+    if (event.request.url.startsWith('https://script.google.com/macros/s/AKfycbwU_ra-PtfwW_ABOSG1zRUXAEkGvEl6iz4-05ugijW_MUr9MkkLpJ4HH5QU0vWVGnlfSQ/exec')) {
         event.respondWith(
             caches.open(CACHE_NAME).then(cache => {
                 return fetch(event.request)
@@ -29,3 +29,4 @@ self.addEventListener('fetch', event => {
         );
     }
 });
+
