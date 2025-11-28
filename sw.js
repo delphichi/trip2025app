@@ -34,4 +34,20 @@ self.addEventListener('activate', event => {
     }));
 });
 
-// ... (fetch 程式碼保持不變) ...
+// 擷取階段 (Fetch)
+self.addEventListener('fetch', event => {
+    // *** 確保 Apps Script API 連結永遠走網路，不被靜態快取 ***
+    // 您的 Apps Script 連結通常是 'https://script.google.com/macros/s/...'
+    if (event.request.url.includes('script.google.com/macros/s')) {
+        // 直接返回網路請求，不進行快取
+        return event.respondWith(fetch(event.request));
+    } 
+    
+    // 否則，使用快取優先的策略處理靜態資源 (HTML/CSS/JS/圖片)
+    event.respondWith(
+        caches.match(event.request).then(response => {
+            return response || fetch(event.request);
+        })
+    );
+});
+
