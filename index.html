@@ -1,4 +1,40 @@
 <script>
+    // 替換成您在 Apps Script 步驟中獲得的 Web app URL
+    const API_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE'; 
+
+    async function fetchTest() {
+        const container = document.getElementById('trip-schedule-container');
+        container.innerHTML = '<h2>正在嘗試連接 API...</h2>'; // 顯示一個初始訊息
+
+        try {
+            const response = await fetch(API_URL);
+            
+            // 檢查 HTTP 狀態碼
+            if (!response.ok) {
+                container.innerHTML = '<h2 style="color: red;">❌ API 連線成功，但回傳錯誤狀態碼 (' + response.status + ')。</h2>';
+                return;
+            }
+
+            const data = await response.json(); 
+            
+            // 顯示成功載入的訊息
+            container.innerHTML = '<h2 style="color: green;">✅ 連接成功！已取得資料。</h2>';
+            
+            // 顯示第一筆資料的 DAY 屬性 (用於確認資料結構)
+            if (data && data.length > 0) {
+                 container.innerHTML += '<p>第一筆資料的 DAY 欄位是：<strong>' + data[0].DAY + '</strong></p>';
+            }
+
+        } catch (error) {
+            // 如果連線失敗 (例如網址無效或 CORS 錯誤)
+            console.error('Fetch error:', error);
+            container.innerHTML = '<h2 style="color: red;">❌ 連線失敗或程式碼錯誤。請檢查 API 網址！</h2>';
+        }
+    }
+
+    window.addEventListener('load', fetchTest);
+</script>
+<script>
     // ** 替換成您在 Apps Script 步驟中獲得的 Web app URL **
     const API_URL = 'https://script.google.com/macros/s/AKfycbzEf0mvIlEQI1pVBALtUz5kr2l9Q08P2z4aiZyES__a3Sl0KMswKHbyq2bf83WTkYeA5g/exec'; 
     
@@ -135,5 +171,6 @@
 
     window.addEventListener('load', fetchTripData);
 </script>
+
 
 
