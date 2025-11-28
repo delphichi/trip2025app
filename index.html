@@ -6,27 +6,50 @@
     // ** 請將此替換為您在 Apps Script 步驟中獲得的 Web app URL **
     const API_URL = 'https://script.google.com/macros/s/AKfycbwU_ra-PtfwW_ABOSG1zRUXAEkGvEl6iz4-05ugijW_MUr9MkkLpJ4HH5QU0vWVGnlfSQ/exec'; 
 
+    function generateDayCard(item) {
+        // 根據您在 Apps Script 中取得的試算表欄位名稱來建立 HTML 結構
+        // 假設欄位名稱為：Date, Activity, Description, Meal
+        return `
+            <section class="day-card">
+                <h2 class="day-title">📆 第 ${item.Day} 天：${item.Date}</h2>
+                <div class="activity-list">
+                    <div class="activity">
+                        <span class="time">${item.Time || '行程'}</span>
+                        <p><strong>${item.Activity}</strong> - 介紹：${item.Description || '無'}</p>
+                    </div>
+                    ${item.Meal ? 
+                       `<div class="activity meal"><span class="time">餐飲</span><p>${item.Meal}</p></div>` 
+                       : ''}
+                    ${item.Accommodation ? 
+                       `<div class="activity accommodation"><span class="time">住宿</span><p>${item.Accommodation}</p></div>` 
+                       : ''}
+                </div>
+            </section>
+        `;
+    }
+
+
     async function fetchTripData() {
         const container = document.getElementById('trip-schedule-container');
         try {
-            // 抓取 Apps Script 提供的 JSON 資料
             const response = await fetch(API_URL);
-            const data = await response.json();
+            const data = await response.json(); // data 現在是一個物件陣列
 
             container.innerHTML = ''; // 清空載入中提示
 
-            // 這裡需要複雜的程式碼來遍歷 JSON 資料 (data) 並生成 HTML 結構
+            if (Array.isArray(data) && data.length > 0) {
+                let htmlContent = '';
+                
+                // 遍歷所有行資料，並為每一行生成一個行程卡片
+                data.forEach(item => {
+                    htmlContent += generateDayCard(item);
+                });
 
-            // 為了簡化，我們先只顯示成功訊息和部分數據
-            let htmlContent = '<p class="footer-note">🥳 資料載入成功！</p>';
-            
-            // 範例：顯示第一天的行程標題
-            if(data.length > 0) {
-                 htmlContent += `<section class="day-card"><h2 class="day-title">📆 第 1 天：${data[0].DATE}</h2>`;
-                 htmlContent += `<p>上午行程：${data[0].Activity} - ${data[0].Description}</p></section>`;
+                container.innerHTML = htmlContent;
+                
+            } else {
+                 container.innerHTML = '<p class="footer-note">🥳 資料載入成功！但試算表中沒有找到行程數據。</p>';
             }
-
-            container.innerHTML = htmlContent;
 
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -34,9 +57,9 @@
         }
     }
 
-    // 在網頁載入完成後執行抓取資料
     window.addEventListener('load', fetchTripData);
 
 </script>
+
 
 
