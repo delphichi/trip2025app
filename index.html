@@ -1,51 +1,127 @@
-<main class="trip-schedule" id="trip-schedule-container">
-    <p>正在載入最新的家族行程表...</p>
-</main>
-
 <script>
-    // ** 請將此替換為您在 Apps Script 步驟中獲得的 Web app URL **
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwU_ra-PtfwW_ABOSG1zRUXAEkGvEl6iz4-05ugijW_MUr9MkkLpJ4HH5QU0vWVGnlfSQ/exec'; 
+    // ** 替換成您在 Apps Script 步驟中獲得的 Web app URL **
+    const API_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE'; 
+    
+    // ==========================================================
+    // 1. 資料處理：將扁平的試算表資料依「天數」或「日期」分組
+    // ==========================================================
+    function groupDataByDay(data) {
+        const grouped = {};
+        
+        data.forEach(item => {
+            // 使用 DAY 或 DATE 作為唯一的識別鍵 (Key)
+            // 注意：這裡使用的屬性名稱必須和試算表第一行的欄位名稱完全匹配，例如：item.DAY
+            const dayKey = item.DATE || item.DAY; 
+            
+            // 跳過沒有天數/日期資訊的資料行
+            if (!dayKey) return; 
 
-    function generateDayCard(item) {
-        // 根據您在 Apps Script 中取得的試算表欄位名稱來建立 HTML 結構
-        // 假設欄位名稱為：Date, Activity, Description, Meal
-        return `
-            <section class="day-card">
-                <h2 class="day-title">📆 第 ${item.Day} 天：${item.Date}</h2>
-                <div class="activity-list">
-                    <div class="activity">
-                        <span class="time">${item.Time || '行程'}</span>
-                        <p><strong>${item.Activity}</strong> - 介紹：${item.Description || '無'}</p>
+            // 如果該天尚未在 grouped 物件中，則初始化一個新組
+            if (!grouped[dayKey]) {
+                grouped[dayKey] = {
+                    day: item.DAY,
+                    date: item.DATE,
+                    activities: []
+                };
+            }
+            // 將當前行資料推入該天的活動清單
+            grouped[dayKey].activities.push(item);
+        });
+        
+        // 將物件轉換回陣列，以便遍歷顯示
+        return Object.values(grouped);
+    }
+
+    // ==========================================================
+    // 2. 介面生成：根據分組後的資料生成 HTML 結構
+    // ==========================================================
+    function generateDayCardHTML(groupedData) {
+        let htmlContent = '';
+        
+        groupedData.forEach(dayGroup => {
+            let activitiesHtml = '';
+            
+            dayGroup.activities.forEach(item => {
+                // *** 確保這裡使用的屬性名稱 (item.Activity, item.Description, item.TIME) ***
+                // *** 與您的 Google Sheet 欄位名稱完全匹配 (包括大小寫) ***
+                
+                // 行程活動卡片
+                if (item.Activity) {
+                    activitiesHtml += `
+                        <div class="activity">
+                            <span class="time">${item.TIME || '行程'}</span>
+                            <p>
+                                <strong>${item.Activity}</strong> 
+                                ${item.Description ? `- 介紹：${item.Description}` : ''}
+                            </p>
+                        </div>
+                    `;
+                }
+
+                // 中餐卡片 (如果 LUNCH 欄位有內容)
+                if (item.LUNCH) {
+                    activitiesHtml += `
+                        <div class="activity meal">
+                            <span class="time">中餐</span>
+                            <p>${item.LUNCH}</p>
+                        </div>
+                    `;
+                }
+                
+                // 晚餐卡片 (如果 DINNER 欄位有內容)
+                if (item.DINNER) {
+                    activitiesHtml += `
+                        <div class="activity meal">
+                            <span class="time">晚餐</span>
+                            <p>${item.DINNER}</p>
+                        </div>
+                    `;
+                }
+                
+                // 如果您有 Accommodation/住宿 欄位，可以繼續在這裡添加邏輯
+            });
+            
+            // 每個日期的主卡片
+            htmlContent += `
+                <section class="day-card">
+                    <h2 class="day-title">
+                        📆 第 ${dayGroup.day || '?'} 天：${dayGroup.date || '日期未定'}
+                    </h2>
+                    <div class="activity-list">
+                        ${activitiesHtml}
                     </div>
-                    ${item.Meal ? 
-                       `<div class="activity meal"><span class="time">餐飲</span><p>${item.Meal}</p></div>` 
-                       : ''}
-                    ${item.Accommodation ? 
-                       `<div class="activity accommodation"><span class="time">住宿</span><p>${item.Accommodation}</p></div>` 
-                       : ''}
-                </div>
-            </section>
-        `;
+                </section>
+            `;
+        });
+        
+        return htmlContent;
     }
 
 
+    // ==========================================================
+    // 3. 主要執行：抓取資料與渲染
+    // ==========================================================
     async function fetchTripData() {
         const container = document.getElementById('trip-schedule-container');
         try {
+            // 註冊 Service Worker 時，在 URL 後面加上時間戳記作為查詢參數 (解決更新問題)
+            const versionBuster = Date.now(); 
+            navigator.serviceWorker.register('./sw.js?v=' + versionBuster);
+
             const response = await fetch(API_URL);
-            const data = await response.json(); // data 現在是一個物件陣列
+            const data = await response.json(); 
 
             container.innerHTML = ''; // 清空載入中提示
 
             if (Array.isArray(data) && data.length > 0) {
-                let htmlContent = '';
+                // 將扁平資料分組
+                const groupedData = groupDataByDay(data);
                 
-                // 遍歷所有行資料，並為每一行生成一個行程卡片
-                data.forEach(item => {
-                    htmlContent += generateDayCard(item);
-                });
-
-                container.innerHTML = htmlContent;
+                // 生成 HTML
+                container.innerHTML = generateDayCardHTML(groupedData);
+                
+                // 加上頁尾備註
+                container.innerHTML += '<p class="footer-note">🥳 最新資料已從 Google 試算表載入！</p>';
                 
             } else {
                  container.innerHTML = '<p class="footer-note">🥳 資料載入成功！但試算表中沒有找到行程數據。</p>';
@@ -53,30 +129,9 @@
 
         } catch (error) {
             console.error('Error fetching data:', error);
-            container.innerHTML = '<p style="color: red;">⚠️ 無法從 Google 試算表載入資料。請檢查網路或 API 連結。</p>';
+            container.innerHTML = '<p style="color: red;">⚠️ 無法從 Google 試算表載入資料。請檢查網路或 Apps Script 連結。</p>';
         }
     }
 
     window.addEventListener('load', fetchTripData);
-
 </script>
-
-<script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                // 1. 取得當前時間戳記 (例如：1672531200000)
-                //    這個時間戳記會隨著每次網頁載入而不同，用來「騙過」瀏覽器
-                const versionBuster = Date.now(); 
-                
-                // 2. 註冊 Service Worker 時，在 URL 後面加上時間戳記作為查詢參數
-                //    瀏覽器會認為這是第一次看到 /sw.js?v= [新時間] 這個檔案
-                navigator.serviceWorker.register('./sw.js?v=' + versionBuster).then(function(registration) {
-                    console.log('ServiceWorker registration successful with unique version: ', registration.scope);
-                }, function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
-    </script>
-
-
