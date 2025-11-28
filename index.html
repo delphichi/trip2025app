@@ -53,34 +53,7 @@ function formatDisplayDate(isoDateString) {
 }
 
 
-// --------------------------------------------------------------------------
-// generateDayCardHTML 函數 (只修改日期顯示部分)
-// --------------------------------------------------------------------------
-function generateDayCardHTML(groupedData) {
-    let htmlContent = '';
-    
-    groupedData.forEach(dayGroup => {
-        let activitiesHtml = '';
-        // ... (activitiesHtml 的生成邏輯保持不變) ...
 
-        // 格式化日期：使用新的 formatDisplayDate 函數來處理 dayGroup.date
-        const displayDate = formatDisplayDate(dayGroup.date);
-        
-        // 每個日期的主卡片
-        htmlContent += `
-            <section class="day-card">
-                <h2 class="day-title">
-                    📆 第 ${dayGroup.day || '?'} 天：${displayDate}
-                </h2>
-                <div class="activity-list">
-                    ${activitiesHtml}
-                </div>
-            </section>
-        `;
-    });
-    
-    return htmlContent;
-}
         // ==========================================================
         // 資料處理：將扁平的試算表資料依「天數」或「日期」分組
         // ==========================================================
@@ -110,8 +83,8 @@ function generateDayCardHTML(groupedData) {
             let htmlContent = '';
             
             groupedData.forEach(dayGroup => {
-                let activitiesHtml = '';
-                
+        let activitiesHtml = '';
+                const displayDate = formatDisplayDate(dayGroup.date);
                 dayGroup.activities.forEach(item => {
                     // *** 確保這裡使用的屬性名稱與 Google Sheet 欄位名稱完全匹配 (例如：item.Activity) ***
                     
@@ -153,7 +126,7 @@ function generateDayCardHTML(groupedData) {
                 htmlContent += `
                     <section class="day-card">
                         <h2 class="day-title">
-                            📆 第 ${dayGroup.day || '?'} 天：${dayGroup.date || '日期未定'}
+                            📆 第 ${dayGroup.day || '?'} 天：${displayDate || '日期未定'}
                         </h2>
                         <div class="activity-list">
                             ${activitiesHtml}
@@ -231,5 +204,6 @@ function generateDayCardHTML(groupedData) {
     
 </body>
 </html>
+
 
 
