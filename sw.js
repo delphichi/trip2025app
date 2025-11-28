@@ -1,32 +1,37 @@
-// sw.js (只顯示 fetch 階段的修改)
+// sw.js
 
-// ... 其他 install / activate 階段保持不變 ...
+const CACHE_NAME = 'family-trip-cache-v1'; // <--- 保持靜態 v1 即可
+// ... (urlsToCache 保持不變) ...
 
-// 3. 擷取階段 (Fetch)
-self.addEventListener('fetch', event => {
-    // 檢查是否為我們的 Apps Script API 請求
-    if (event.request.url.startsWith('https://script.google.com/macros/s/AKfycbwU_ra-PtfwW_ABOSG1zRUXAEkGvEl6iz4-05ugijW_MUr9MkkLpJ4HH5QU0vWVGnlfSQ/exec')) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then(cache => {
-                return fetch(event.request)
-                    .then(response => {
-                        // 網路成功，將新的資料存入快取並回傳
-                        cache.put(event.request, response.clone());
-                        return response;
-                    })
-                    .catch(() => {
-                        // 網路失敗，從快取中尋找舊的 API 資料
-                        return cache.match(event.request);
-                    });
+// 1. 安裝階段 (Installation)
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                // ... (快取核心資源) ...
+                return cache.addAll(urlsToCache);
             })
-        );
-    } else {
-        // 靜態檔案（HTML/CSS/JS/圖片）的快取邏輯保持不變
-        event.respondWith(
-            caches.match(event.request).then(response => {
-                return response || fetch(event.request);
-            })
-        );
-    }
+            // *** 新增這一行：跳過等待，立即啟用新的 Service Worker ***
+            .then(() => self.skipWaiting()) 
+    );
 });
 
+// 2. 啟動階段 (Activation)
+self.addEventListener('activate', event => {
+    // *** 新增這一行：立即接管客戶端，確保更新生效 ***
+    event.waitUntil(self.clients.claim().then(() => {
+        // ... (清理舊快取的邏輯保持不變) ...
+        const cacheWhitelist = [CACHE_NAME];
+        return caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cacheName => {
+                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        });
+    }));
+});
+
+// ... (fetch 程式碼保持不變) ...
