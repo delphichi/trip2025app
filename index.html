@@ -61,5 +61,22 @@
 
 </script>
 
+<script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                // 1. 取得當前時間戳記 (例如：1672531200000)
+                //    這個時間戳記會隨著每次網頁載入而不同，用來「騙過」瀏覽器
+                const versionBuster = Date.now(); 
+                
+                // 2. 註冊 Service Worker 時，在 URL 後面加上時間戳記作為查詢參數
+                //    瀏覽器會認為這是第一次看到 /sw.js?v= [新時間] 這個檔案
+                navigator.serviceWorker.register('./sw.js?v=' + versionBuster).then(function(registration) {
+                    console.log('ServiceWorker registration successful with unique version: ', registration.scope);
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 
 
