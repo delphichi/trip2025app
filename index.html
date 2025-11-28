@@ -22,7 +22,7 @@
             
             // 範例：顯示第一天的行程標題
             if(data.length > 0) {
-                 htmlContent += `<section class="day-card"><h2 class="day-title">📆 第 1 天：${data[0].Date}</h2>`;
+                 htmlContent += `<section class="day-card"><h2 class="day-title">📆 第 1 天：${data[0].DATE}</h2>`;
                  htmlContent += `<p>上午行程：${data[0].Activity} - ${data[0].Description}</p></section>`;
             }
 
@@ -38,4 +38,5 @@
     window.addEventListener('load', fetchTripData);
 
 </script>
+
 
