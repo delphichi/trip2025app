@@ -23,7 +23,64 @@
     <script>
         // *** 步驟 1: 設定您的 Apps Script API 連結 ***
         const API_URL = 'https://script.google.com/macros/s/AKfycbzEf0mvIlEQI1pVBALtUz5kr2l9Q08P2z4aiZyES__a3Sl0KMswKHbyq2bf83WTkYeA5g/exec'; 
+function formatDisplayDate(isoDateString) {
+    if (!isoDateString) return '日期未定';
+    
+    // 嘗試解析 Apps Script 傳來的 ISO 格式日期字串
+    const date = new Date(isoDateString);
+    
+    // 檢查是否為有效的日期
+    if (isNaN(date)) {
+        return isoDateString; // 如果解析失敗，則顯示原始字串
+    }
 
+    // 使用 Intl.DateTimeFormat 進行本地化格式化 (例如：2025年11月30日)
+    // 注意：這裡使用 'UTC' 避免瀏覽器自動調整時區導致日期錯誤
+    const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        timeZone: 'UTC' 
+    };
+    
+    try {
+        // 使用中文 (zh-TW) 格式顯示日期
+        return new Intl.DateTimeFormat('zh-TW', options).format(date);
+    } catch (e) {
+        // 作為備用，如果 Intl 無效
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+}
+
+
+// --------------------------------------------------------------------------
+// generateDayCardHTML 函數 (只修改日期顯示部分)
+// --------------------------------------------------------------------------
+function generateDayCardHTML(groupedData) {
+    let htmlContent = '';
+    
+    groupedData.forEach(dayGroup => {
+        let activitiesHtml = '';
+        // ... (activitiesHtml 的生成邏輯保持不變) ...
+
+        // 格式化日期：使用新的 formatDisplayDate 函數來處理 dayGroup.date
+        const displayDate = formatDisplayDate(dayGroup.date);
+        
+        // 每個日期的主卡片
+        htmlContent += `
+            <section class="day-card">
+                <h2 class="day-title">
+                    📆 第 ${dayGroup.day || '?'} 天：${displayDate}
+                </h2>
+                <div class="activity-list">
+                    ${activitiesHtml}
+                </div>
+            </section>
+        `;
+    });
+    
+    return htmlContent;
+}
         // ==========================================================
         // 資料處理：將扁平的試算表資料依「天數」或「日期」分組
         // ==========================================================
@@ -174,4 +231,5 @@
     
 </body>
 </html>
+
 
