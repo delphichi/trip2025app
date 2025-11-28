@@ -17,50 +17,47 @@
 
     <main class="trip-schedule" id="trip-schedule-container">
         <h2>正在載入最新的家族行程表...</h2>
-        <p>如果長時間未顯示內容，請檢查網路連線或 Apps Script 連結。</p>
     </main>
     
     <script>
         // *** 步驟 1: 設定您的 Apps Script API 連結 ***
         const API_URL = 'https://script.google.com/macros/s/AKfycbzEf0mvIlEQI1pVBALtUz5kr2l9Q08P2z4aiZyES__a3Sl0KMswKHbyq2bf83WTkYeA5g/exec'; 
-function formatDisplayDate(isoDateString) {
-    if (!isoDateString) return '日期未定';
-    
-    // 嘗試解析 Apps Script 傳來的 ISO 格式日期字串
-    const date = new Date(isoDateString);
-    
-    // 檢查是否為有效的日期
-    if (isNaN(date)) {
-        return isoDateString; // 如果解析失敗，則顯示原始字串
-    }
-
-    // 使用 Intl.DateTimeFormat 進行本地化格式化 (例如：2025年11月30日)
-    // 注意：這裡使用 'UTC' 避免瀏覽器自動調整時區導致日期錯誤
-    const options = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        timeZone: 'UTC' 
-    };
-    
-    try {
-        // 使用中文 (zh-TW) 格式顯示日期
-        return new Intl.DateTimeFormat('zh-TW', options).format(date);
-    } catch (e) {
-        // 作為備用，如果 Intl 無效
-        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-    }
-}
-
-
 
         // ==========================================================
-        // 資料處理：將扁平的試算表資料依「天數」或「日期」分組
+        // 日期格式化工具函數 (解決 T03:00:00.000Z 格式問題)
+        // ==========================================================
+        function formatDisplayDate(isoDateString) {
+            if (!isoDateString) return '日期未定';
+            
+            // 嘗試解析 ISO 格式日期字串
+            const date = new Date(isoDateString);
+            
+            if (isNaN(date.getTime())) { // 檢查是否為有效的日期時間
+                return isoDateString; 
+            }
+
+            // 使用本地化格式，讓瀏覽器自動處理時區差異
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric'
+            };
+            
+            try {
+                // 使用中文 (zh-TW) 格式顯示日期
+                return new Intl.DateTimeFormat('zh-TW', options).format(date);
+            } catch (e) {
+                // 備用格式
+                return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+            }
+        }
+
+        // ==========================================================
+        // 資料處理：將扁平的試算表資料依「日期」分組
         // ==========================================================
         function groupDataByDay(data) {
             const grouped = {};
             data.forEach(item => {
-                // 使用 DATE 欄位作為分組鍵 (確保其存在且唯一)
                 const dayKey = item.DATE || item.DAY; 
                 if (!dayKey) return; 
 
@@ -83,11 +80,10 @@ function formatDisplayDate(isoDateString) {
             let htmlContent = '';
             
             groupedData.forEach(dayGroup => {
-        let activitiesHtml = '';
+                let activitiesHtml = '';
                 const displayDate = formatDisplayDate(dayGroup.date);
+                
                 dayGroup.activities.forEach(item => {
-                    // *** 確保這裡使用的屬性名稱與 Google Sheet 欄位名稱完全匹配 (例如：item.Activity) ***
-                    
                     // 行程活動卡片
                     if (item.Activity) {
                         activitiesHtml += `
@@ -126,7 +122,7 @@ function formatDisplayDate(isoDateString) {
                 htmlContent += `
                     <section class="day-card">
                         <h2 class="day-title">
-                            📆 第 ${dayGroup.day || '?'} 天：${displayDate || '日期未定'}
+                            📆 第 ${dayGroup.day || '?'} 天：${displayDate}
                         </h2>
                         <div class="activity-list">
                             ${activitiesHtml}
@@ -143,31 +139,23 @@ function formatDisplayDate(isoDateString) {
         // ==========================================================
         async function fetchTripData() {
             const container = document.getElementById('trip-schedule-container');
+            
+            // 步驟 A: 強制移除舊的 Service Worker 註冊 (解決快取殘留問題)
             if ('serviceWorker' in navigator) {
-    // 檢查是否有舊的 Service Worker 註冊
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (const registration of registrations) {
-            // 強制解除安裝舊的 Service Worker
-            registration.unregister().then(success => {
-                if(success) {
-                    console.log('Successfully unregistered old Service Worker.');
-                }
-            });
-        }
-    });
-}
-            // PWA Service Worker 自動更新註冊 (避免快取問題)
-            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for (const registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+                // 步驟 B: 註冊新的 Service Worker 並加入時間戳記 (自動更新)
                 const versionBuster = Date.now(); 
                 navigator.serviceWorker.register('./sw.js?v=' + versionBuster);
             }
 
             try {
-                // 嘗試從 Apps Script 獲取 JSON 資料
                 const response = await fetch(API_URL);
                 
                 if (!response.ok) {
-                    // 如果 HTTP 狀態碼不是 200 (成功)，拋出錯誤
                     throw new Error(`API 連線成功，但狀態碼錯誤: ${response.status}`);
                 }
                 
@@ -184,15 +172,10 @@ function formatDisplayDate(isoDateString) {
 
             } catch (error) {
                 console.error('Fetch error:', error);
-                // 顯示錯誤訊息，避免一片空白
+                // 顯示詳細錯誤訊息
                 container.innerHTML = `
                     <p style="color: red; padding: 20px;">
-                        ⚠️ 資料載入失敗！請檢查以下項目：
-                        <ul>
-                            <li>API 網址是否正確貼上？</li>
-                            <li>Apps Script 的存取權是否設為「任何人」？</li>
-                            <li>試算表欄位名稱是否與程式碼（例如 item.DAY）完全匹配？</li>
-                        </ul>
+                        ⚠️ 資料載入失敗！請檢查 API 網址或試算表欄位名稱。
                         <br>
                         錯誤詳情: ${error.message}
                     </p>`;
@@ -204,6 +187,3 @@ function formatDisplayDate(isoDateString) {
     
 </body>
 </html>
-
-
-
