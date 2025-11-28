@@ -113,7 +113,19 @@
         // ==========================================================
         async function fetchTripData() {
             const container = document.getElementById('trip-schedule-container');
-            
+            if ('serviceWorker' in navigator) {
+    // 檢查是否有舊的 Service Worker 註冊
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (const registration of registrations) {
+            // 強制解除安裝舊的 Service Worker
+            registration.unregister().then(success => {
+                if(success) {
+                    console.log('Successfully unregistered old Service Worker.');
+                }
+            });
+        }
+    });
+}
             // PWA Service Worker 自動更新註冊 (避免快取問題)
             if ('serviceWorker' in navigator) {
                 const versionBuster = Date.now(); 
@@ -162,3 +174,4 @@
     
 </body>
 </html>
+
